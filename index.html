@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alertify.</title>
+    <link rel="shortcut icon" href="logo.png" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* bg-gray-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* bg-gray-500 */
+        }
+        .analysis-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .analysis-content.open {
+            max-height: 500px; /* Adjust as needed */
+        }
+        .review-dropdown-menu {
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-300">
+
+    <div id="auth-container" class="flex items-center justify-center min-h-screen">
+        <div class="w-full max-w-md">
+            <form id="login-form" class="bg-gray-800 shadow-md rounded-lg px-8 pt-6 pb-8 mb-4">
+                <div class="mb-8 text-center">
+                     <div class="flex items-center justify-center space-x-3 mb-4">
+                        <img src="logo.png" alt="Alertify Logo" class="w-10 h-10 rounded-lg">
+                        <span class="text-2xl font-bold text-white">Alertify.</span>
+                    </div>
+                    <p class="text-gray-400">Your brand’s early warning system.</p>
+                </div>
+                <div id="login-error" class="hidden bg-red-900 border border-red-400 text-red-100 px-4 py-3 rounded-lg relative mb-4" role="alert">
+                    <strong class="font-bold">Error:</strong>
+                    <span id="login-error-message" class="block sm:inline">Invalid email or password.</span>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="login-email">
+                        Email
+                    </label>
+                    <input class="bg-gray-700 border border-gray-600 rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" id="login-email" type="email" placeholder="user@example.com" value="user@example.com">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="login-password">
+                        Password
+                    </label>
+                    <input class="bg-gray-700 border border-gray-600 rounded w-full py-2 px-3 text-gray-200 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" id="login-password" type="password" placeholder="******************" value="password123">
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+                        Sign In
+                    </button>
+                    <a id="show-register" class="inline-block align-baseline font-bold text-sm text-indigo-400 hover:text-indigo-300" href="#">
+                        Register an Account
+                    </a>
+                </div>
+            </form>
+
+            <form id="register-form" class="hidden bg-gray-800 shadow-md rounded-lg px-8 pt-6 pb-8 mb-4">
+                 <div class="mb-8 text-center">
+                    <h1 class="text-2xl font-bold text-white">Create Account</h1>
+                 </div>
+                 <div id="register-message" class="hidden px-4 py-3 rounded-lg relative mb-4" role="alert">
+                    <span class="block sm:inline"></span>
+                </div>
+                 <div class="mb-4">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="register-name">Name</label>
+                    <input class="bg-gray-700 border border-gray-600 rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" id="register-name" type="text" placeholder="Full Name">
+                </div>
+                 <div class="mb-4">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="register-brand-name">Brand Name</label>
+                    <input class="bg-gray-700 border border-gray-600 rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" id="register-brand-name" type="text" placeholder="Your Company Name">
+                </div>
+                 <div class="mb-4">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="register-email">Email</label>
+                    <input class="bg-gray-700 border border-gray-600 rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" id="register-email" type="email" placeholder="Email">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="register-password">Password</label>
+                    <input class="bg-gray-700 border border-gray-600 rounded w-full py-2 px-3 text-gray-200 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" id="register-password" type="password" placeholder="******************">
+                </div>
+                 <div class="mb-6">
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="register-confirm-password">Confirm Password</label>
+                    <input class="bg-gray-700 border border-gray-600 rounded w-full py-2 px-3 text-gray-200 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" id="register-confirm-password" type="password" placeholder="******************">
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+                        Register
+                    </button>
+                    <a id="show-login" class="inline-block align-baseline font-bold text-sm text-indigo-400 hover:text-indigo-300" href="#">
+                        Already have an account?
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="dashboard-container" class="hidden flex h-screen">
+        <aside class="w-64 bg-gray-800 p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center space-x-3 mb-10">
+                    <img src="logo.png" alt="Alertify Logo" class="w-10 h-10 rounded-lg">
+                    <span class="text-xl font-bold text-white">Alertify.</span>
+                </div>
+                <nav id="sidebar-nav" class="space-y-2">
+                    <a href="#dashboard" class="nav-link flex items-center space-x-3 px-4 py-2 text-white bg-gray-700 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#reports" class="nav-link flex items-center space-x-3 px-4 py-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span>Reports</span>
+                    </a>
+                    <a href="#competitors" class="nav-link flex items-center space-x-3 px-4 py-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5-10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        <span>Competitors</span>
+                    </a>
+                    <a href="#settings" class="nav-link flex items-center space-x-3 px-4 py-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="flex items-center space-x-4 p-2 rounded-lg hover:bg-gray-700">
+                <img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/7c3aed/ffffff?text=A" alt="User Avatar">
+                <div>
+                    <p id="user-name-display" class="font-semibold text-white">Souradeep Pradhan</p>
+                    <p id="user-email-display" class="text-sm text-gray-400">user@example.com</p>
+                </div>
+                <button id="logout-button" class="ml-auto text-gray-400 hover:text-white" title="Logout">
+                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
+            </div>
+        </aside>
+
+        <div id="main-content-area" class="flex-1 overflow-y-auto">
+            
+            <main id="dashboard" class="page-content p-8">
+                <header class="mb-8">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-3xl font-bold text-white">Dashboard</h1>
+                        <div class="bg-gray-800 p-3 rounded-lg flex items-center space-x-3 text-sm">
+                            <span class="text-gray-400">Connected Accounts:</span>
+                            <span class="font-bold text-white"><span id="connected-count">0</span> / <span id="total-accounts">5</span></span>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex flex-wrap gap-4">
+                        <div class="relative flex-grow">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </span>
+                            <input type="search" placeholder="Search mentions..." class="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <select class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option>All Sources</option>
+                            <option>Twitter</option>
+                            <option>Google</option>
+                            <option>Reddit</option>
+                        </select>
+                        <select class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option>All Sentiments</option>
+                            <option>Positive</option>
+                            <option>Negative</option>
+                            <option>Neutral</option>
+                        </select>
+                        <select class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option>All Priorities</option>
+                            <option>High</option>
+                            <option>Medium</option>
+                            <option>Low</option>
+                        </select>
+                    </div>
+                </header>
+
+                <div id="mentions-container" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    
+                    <div class="bg-gray-800 rounded-lg p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/38bdf8/ffffff?text=D" alt="Avatar">
+                                    <div>
+                                        <p class="font-semibold text-white">DevRelPro</p>
+                                        <p class="text-sm text-gray-400">@devrelpro &middot; 1 day ago</p>
+                                    </div>
+                                </div>
+                                <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.999 4.032c-1.172 1.956-2.586 3.516-4.242 4.674-1.656 1.152-3.456 1.836-5.4 1.98-.3.024-.6.036-.9.036-.324 0-.636-.012-.948-.036-1.92-.144-3.684-.804-5.292-1.92-1.608-1.116-2.976-2.652-4.104-4.608l2.304-.96c.948 1.524 2.112 2.796 3.504 3.816s2.964 1.536 4.716 1.536c1.752 0 3.324-.504 4.716-1.512s2.556-2.28 3.504-3.78l2.304.984Z"/></svg>
+                            </div>
+                            <p class="mt-4 text-gray-300">Just tried the new feature from @BrandInc, and it's a game-changer! The performance is incredible. Kudos to the team! #dev #product</p>
+                        </div>
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between text-gray-400">
+                                <div class="flex items-center space-x-4 text-sm">
+                                    <span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg><span>152</span></span>
+                                    <span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg><span>34</span></span>
+                                </div>
+                                <div><span class="px-2 py-1 text-xs font-medium text-blue-200 bg-blue-900 rounded-full">Low</span><span class="px-2 py-1 text-xs font-medium text-green-200 bg-green-900 rounded-full ml-2">Positive</span></div>
+                            </div>
+                            <button class="analysis-toggle w-full mt-4 text-sm text-indigo-400 hover:text-indigo-300 flex items-center justify-center">View AI Analysis<svg class="w-4 h-4 ml-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button>
+                            <div class="analysis-content mt-2 text-sm text-gray-400 border-t border-gray-700 pt-3">
+                                <p><strong class="text-gray-200">Summary:</strong> Positive user feedback on a new feature launch, highlighting performance benefits.</p>
+                                <p><strong class="text-gray-200">Recommended Action:</strong> Share this feedback with the product team and use it as a testimonial in marketing materials.</p>
+                                <div class="mt-4 space-y-3">
+                                    <div>
+                                        <label for="compose-box-1" class="sr-only">Compose Reply</label>
+                                        <textarea id="compose-box-1" rows="3" class="compose-box w-full bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Write a reply..."></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <button class="ai-suggest-btn text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21m5-16l2.293 2.293a1 1 0 010 1.414L15 12l5.707 5.293a1 1 0 010 1.414L18 21m-5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21"></path></svg>
+                                            <span>AI Suggestion</span>
+                                        </button>
+                                         <select id="forward-to-1" name="forward-to-1" class="bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option>Post as Public Reply</option>
+                                            <option>Forward to Product Team</option>
+                                            <option>Forward to CEO</option>
+                                         </select>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="flex-1 text-center py-2 px-3 text-xs font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md">Edit</button>
+                                        <button class="post-analysis-btn flex-1 text-center py-2 px-3 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">Post</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-800 rounded-lg p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-4"><img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/ef4444/ffffff?text=AC" alt="Avatar">
+                                    <div><p class="font-semibold text-white">AngryCustomer123</p><p class="text-sm text-gray-400">u/angrycustomer123 &middot; 15 min ago</p></div>
+                                </div>
+                                <svg class="w-5 h-5 text-red-500" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Reddit</title><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.34.34 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12.469c-1.03 0-1.865.835-1.865 1.865s.835 1.865 1.865 1.865 1.865-.835 1.865-1.865-.835-1.865-1.865-1.865zm5.5 0c-1.03 0-1.865.835-1.865 1.865s.835 1.865 1.865 1.865 1.865-.835 1.865-1.865-.835-1.865-1.865-1.865z"/></svg>
+                            </div>
+                            <p class="mt-4 text-gray-300">Is anyone else having issues with @BrandInc's latest update? My app keeps crashing every 5 minutes. It's completely unusable. Fix this!</p>
+                        </div>
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between text-gray-400">
+                                <div class="flex items-center space-x-4 text-sm"><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg><span>210</span></span><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg><span>88</span></span></div>
+                                <div><span class="px-2 py-1 text-xs font-medium text-red-200 bg-red-900 rounded-full">High</span><span class="px-2 py-1 text-xs font-medium text-red-200 bg-red-900 rounded-full ml-2">Negative</span></div>
+                            </div>
+                            <button class="analysis-toggle w-full mt-4 text-sm text-indigo-400 hover:text-indigo-300 flex items-center justify-center">View AI Analysis<svg class="w-4 h-4 ml-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button>
+                            <div class="analysis-content mt-2 text-sm text-gray-400 border-t border-gray-700 pt-3">
+                                <p><strong class="text-gray-200">Summary:</strong> A critical bug report following a recent app update is causing crashes and making the app unusable for some users.</p>
+                                <p><strong class="text-gray-200">Recommended Action:</strong> Immediately flag this to the engineering team for an emergency hotfix. Prepare a public statement acknowledging the issue and providing a timeline for a solution.</p>
+                                <div class="mt-4 space-y-3">
+                                    <div>
+                                        <label for="compose-box-2" class="sr-only">Compose Reply</label>
+                                        <textarea id="compose-box-2" rows="3" class="compose-box w-full bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Write a reply..."></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <button class="ai-suggest-btn text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21m5-16l2.293 2.293a1 1 0 010 1.414L15 12l5.707 5.293a1 1 0 010 1.414L18 21m-5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21"></path></svg>
+                                            <span>AI Suggestion</span>
+                                        </button>
+                                        <select id="forward-to-2" name="forward-to-2" class="bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option>Post as Public Reply</option>
+                                            <option selected>Forward to Product Team</option>
+                                            <option>Forward to CEO</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="flex-1 text-center py-2 px-3 text-xs font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md">Edit</button>
+                                        <button class="post-analysis-btn flex-1 text-center py-2 px-3 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">Post</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-800 rounded-lg p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-4"><img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/10b981/ffffff?text=LG" alt="Avatar">
+                                    <div><p class="font-semibold text-white">Local Guide</p><p class="text-sm text-gray-400">Google Review &middot; 4 days ago</p></div>
+                                </div>
+                                <svg class="w-5 h-5 text-green-400" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Google</title><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.386-7.439-7.574s3.344-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.85l3.25-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/></svg>
+                            </div>
+                            <p class="mt-4 text-gray-300">Five stars for BrandInc! Their product has streamlined our workflow and saved us countless hours. Highly recommended.</p>
+                        </div>
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between text-gray-400">
+                                <div class="flex items-center space-x-4 text-sm"><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg><span>65</span></span><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg><span>2</span></span></div>
+                                <div><span class="px-2 py-1 text-xs font-medium text-blue-200 bg-blue-900 rounded-full">Low</span><span class="px-2 py-1 text-xs font-medium text-green-200 bg-green-900 rounded-full ml-2">Positive</span></div>
+                            </div>
+                            <button class="analysis-toggle w-full mt-4 text-sm text-indigo-400 hover:text-indigo-300 flex items-center justify-center">View AI Analysis<svg class="w-4 h-4 ml-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button>
+                            <div class="analysis-content mt-2 text-sm text-gray-400 border-t border-gray-700 pt-3">
+                                <p><strong class="text-gray-200">Summary:</strong> A glowing 5-star review praising the product's impact on workflow efficiency.</p>
+                                <p><strong class="text-gray-200">Recommended Action:</strong> Request permission from the user to feature this review on the main website's customer stories section.</p>
+                                <div class="mt-4 space-y-3">
+                                    <div>
+                                        <label for="compose-box-3" class="sr-only">Compose Reply</label>
+                                        <textarea id="compose-box-3" rows="3" class="compose-box w-full bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Write a reply..."></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <button class="ai-suggest-btn text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21m5-16l2.293 2.293a1 1 0 010 1.414L15 12l5.707 5.293a1 1 0 010 1.414L18 21m-5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21"></path></svg>
+                                            <span>AI Suggestion</span>
+                                        </button>
+                                        <select id="forward-to-3" name="forward-to-3" class="bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option>Post as Public Reply</option>
+                                            <option>Forward to Product Team</option>
+                                            <option>Forward to CEO</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="flex-1 text-center py-2 px-3 text-xs font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md">Edit</button>
+                                        <button class="post-analysis-btn flex-1 text-center py-2 px-3 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">Post</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-800 rounded-lg p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-4"><img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/f59e0b/ffffff?text=P" alt="Avatar">
+                                    <div><p class="font-semibold text-white">PriceWatcher</p><p class="text-sm text-gray-400">@pricewatcher &middot; 1 day ago</p></div>
+                                </div>
+                                <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.999 4.032c-1.172 1.956-2.586 3.516-4.242 4.674-1.656 1.152-3.456 1.836-5.4 1.98-.3.024-.6.036-.9.036-.324 0-.636-.012-.948-.036-1.92-.144-3.684-.804-5.292-1.92-1.608-1.116-2.976-2.652-4.104-4.608l2.304-.96c.948 1.524 2.112 2.796 3.504 3.816s2.964 1.536 4.716 1.536c1.752 0 3.324-.504 4.716-1.512s2.556-2.28 3.504-3.78l2.304.984Z"/></svg>
+                            </div>
+                            <p class="mt-4 text-gray-300">Wow, @BrandInc just increased their subscription prices by 30% without any warning? That's a bold move. I'm not sure it's worth it anymore.</p>
+                        </div>
+                        <div class="mt-6">
+                             <div class="flex items-center justify-between text-gray-400">
+                                <div class="flex items-center space-x-4 text-sm"><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg><span>89</span></span><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg><span>22</span></span></div>
+                                <div><span class="px-2 py-1 text-xs font-medium text-yellow-200 bg-yellow-900 rounded-full">Medium</span><span class="px-2 py-1 text-xs font-medium text-red-200 bg-red-900 rounded-full ml-2">Negative</span></div>
+                            </div>
+                            <button class="analysis-toggle w-full mt-4 text-sm text-indigo-400 hover:text-indigo-300 flex items-center justify-center">View AI Analysis<svg class="w-4 h-4 ml-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button>
+                            <div class="analysis-content mt-2 text-sm text-gray-400 border-t border-gray-700 pt-3">
+                                <p><strong class="text-gray-200">Summary:</strong> A competitor announced a significant price increase across all subscription tiers, causing negative reactions from users.</p>
+                                <p><strong class="text-gray-200">Recommended Action:</strong> Launch a marketing campaign targeting their disgruntled customers, highlighting our stable pricing and better value proposition.</p>
+                                <div class="mt-4 space-y-3">
+                                    <div>
+                                        <label for="compose-box-4" class="sr-only">Compose Reply</label>
+                                        <textarea id="compose-box-4" rows="3" class="compose-box w-full bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Write a reply..."></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <button class="ai-suggest-btn text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21m5-16l2.293 2.293a1 1 0 010 1.414L15 12l5.707 5.293a1 1 0 010 1.414L18 21m-5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21"></path></svg>
+                                            <span>AI Suggestion</span>
+                                        </button>
+                                        <select id="forward-to-4" name="forward-to-4" class="bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option>Post as Public Reply</option>
+                                            <option>Forward to Product Team</option>
+                                            <option>Forward to CEO</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="flex-1 text-center py-2 px-3 text-xs font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md">Edit</button>
+                                        <button class="post-analysis-btn flex-1 text-center py-2 px-3 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">Post</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                     <div class="bg-gray-800 rounded-lg p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-4"><img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/ec4899/ffffff?text=JD" alt="Avatar">
+                                    <div><p class="font-semibold text-white">Jane Doe</p><p class="text-sm text-gray-400">Google Review &middot; 2 days ago</p></div>
+                                </div>
+                               <svg class="w-5 h-5 text-green-400" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Google</title><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.386-7.439-7.574s3.344-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.85l3.25-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/></svg>
+                            </div>
+                            <p class="mt-4 text-gray-300">The customer service at BrandInc is terrible. I've been waiting for a response to my ticket for over a week. Do they even care about their customers?</p>
+                        </div>
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between text-gray-400">
+                                <div class="flex items-center space-x-4 text-sm"><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg><span>65</span></span><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg><span>2</span></span></div>
+                                <div><span class="px-2 py-1 text-xs font-medium text-yellow-200 bg-yellow-900 rounded-full">Medium</span><span class="px-2 py-1 text-xs font-medium text-red-200 bg-red-900 rounded-full ml-2">Negative</span></div>
+                            </div>
+                            <button class="analysis-toggle w-full mt-4 text-sm text-indigo-400 hover:text-indigo-300 flex items-center justify-center">View AI Analysis<svg class="w-4 h-4 ml-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button>
+                            <div class="analysis-content mt-2 text-sm text-gray-400 border-t border-gray-700 pt-3">
+                                <p><strong class="text-gray-200">Summary:</strong> A customer is expressing extreme frustration with slow customer service response times, potentially indicating a systemic issue.</p>
+                                <p><strong class="text-gray-200">Recommended Action:</strong> Escalate this to the Head of Customer Support to investigate the ticket and review team workload. Consider implementing an automated response system for new tickets.</p>
+                                <div class="mt-4 space-y-3">
+                                    <div>
+                                        <label for="compose-box-5" class="sr-only">Compose Reply</label>
+                                        <textarea id="compose-box-5" rows="3" class="compose-box w-full bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Write a reply..."></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <button class="ai-suggest-btn text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21m5-16l2.293 2.293a1 1 0 010 1.414L15 12l5.707 5.293a1 1 0 010 1.414L18 21m-5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21"></path></svg>
+                                            <span>AI Suggestion</span>
+                                        </button>
+                                        <select id="forward-to-5" name="forward-to-5" class="bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option>Post as Public Reply</option>
+                                            <option>Forward to Product Team</option>
+                                            <option>Forward to CEO</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="flex-1 text-center py-2 px-3 text-xs font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md">Edit</button>
+                                        <button class="post-analysis-btn flex-1 text-center py-2 px-3 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">Post</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                     <div class="bg-gray-800 rounded-lg p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-4"><img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/8b5cf6/ffffff?text=TS" alt="Avatar">
+                                    <div><p class="font-semibold text-white">TechSavvy</p><p class="text-sm text-gray-400">@techsavvy &middot; 3 days ago</p></div>
+                                </div>
+                                <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.999 4.032c-1.172 1.956-2.586 3.516-4.242 4.674-1.656 1.152-3.456 1.836-5.4 1.98-.3.024-.6.036-.9.036-.324 0-.636-.012-.948-.036-1.92-.144-3.684-.804-5.292-1.92-1.608-1.116-2.976-2.652-4.104-4.608l2.304-.96c.948 1.524 2.112 2.796 3.504 3.816s2.964 1.536 4.716 1.536c1.752 0 3.324-.504 4.716-1.512s2.556-2.28 3.504-3.78l2.304.984Z"/></svg>
+                            </div>
+                            <p class="mt-4 text-gray-300">The app is okay. It does what it says, but the UI feels a bit dated compared to competitors. Nothing special, but it works.</p>
+                        </div>
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between text-gray-400">
+                                <div class="flex items-center space-x-4 text-sm"><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg><span>12</span></span><span class="flex items-center space-x-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg><span>0</span></span></div>
+                                <div><span class="px-2 py-1 text-xs font-medium text-blue-200 bg-blue-900 rounded-full">Low</span><span class="px-2 py-1 text-xs font-medium text-gray-200 bg-gray-600 rounded-full ml-2">Neutral</span></div>
+                            </div>
+                            <button class="analysis-toggle w-full mt-4 text-sm text-indigo-400 hover:text-indigo-300 flex items-center justify-center">View AI Analysis<svg class="w-4 h-4 ml-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button>
+                            <div class="analysis-content mt-2 text-sm text-gray-400 border-t border-gray-700 pt-3">
+                                <p><strong class="text-gray-200">Summary:</strong> Neutral feedback on the product's functionality but negative sentiment regarding the user interface, suggesting it's outdated.</p>
+                                <p><strong class="text-gray-200">Recommended Action:</strong> Add this feedback to the UX/UI design backlog for consideration in the next design sprint. A UI refresh could be a competitive advantage.</p>
+                                <div class="mt-4 space-y-3">
+                                    <div>
+                                        <label for="compose-box-6" class="sr-only">Compose Reply</label>
+                                        <textarea id="compose-box-6" rows="3" class="compose-box w-full bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Write a reply..."></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <button class="ai-suggest-btn text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21m5-16l2.293 2.293a1 1 0 010 1.414L15 12l5.707 5.293a1 1 0 010 1.414L18 21m-5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.707 5.293a1 1 0 010 1.414L13 21"></path></svg>
+                                            <span>AI Suggestion</span>
+                                        </button>
+                                        <select id="forward-to-6" name="forward-to-6" class="bg-gray-700 border-gray-600 rounded-md py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option>Post as Public Reply</option>
+                                            <option>Forward to Product Team</option>
+                                            <option>Forward to CEO</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="flex-1 text-center py-2 px-3 text-xs font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md">Edit</button>
+                                        <button class="post-analysis-btn flex-1 text-center py-2 px-3 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">Post</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="no-mentions-placeholder" class="text-center py-20 bg-gray-800 rounded-lg border border-gray-700">
+                    <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                    </svg>
+                    <h3 class="mt-2 text-lg font-semibold text-white">Start by Connecting an Account</h3>
+                    <p class="mt-1 text-sm text-gray-400">Your brand mentions will appear here once you connect your accounts in settings.</p>
+                </div>
+            </main>
+
+            <main id="reports" class="page-content p-8 hidden">
+                <header class="mb-8 flex justify-between items-center">
+                    <h1 class="text-3xl font-bold text-white">Reports</h1>
+                    <div id="export-pdf-wrapper">
+                        <button id="export-pdf-btn" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <span>Export PDF</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div id="report-content" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-gray-800 p-6 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-400">Total Mentions</p>
+                                    <p class="text-3xl font-bold text-white">10</p>
+                                    <p class="text-sm text-gray-400">in the last 7 days</p>
+                                </div>
+                                <div class="p-3 bg-gray-700 rounded-full">
+                                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 p-6 rounded-lg">
+                             <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-400">Negative Mentions</p>
+                                    <p class="text-3xl font-bold text-white">4</p>
+                                    <p class="text-sm text-gray-400">requiring attention</p>
+                                </div>
+                                <div class="p-3 bg-gray-700 rounded-full">
+                                    <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 p-6 rounded-lg">
+                             <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-400">Positive Sentiment</p>
+                                    <p class="text-3xl font-bold text-white">30.0%</p>
+                                    <p class="text-sm text-gray-400">based on total mentions</p>
+                                </div>
+                                <div class="p-3 bg-gray-700 rounded-full">
+                                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+                        <div class="lg:col-span-3 bg-gray-800 p-6 rounded-lg">
+                            <h2 class="text-lg font-semibold text-white mb-4">Sentiment Trend</h2>
+                            <canvas id="sentimentTrendChart"></canvas>
+                        </div>
+                        <div class="lg:col-span-2 bg-gray-800 p-6 rounded-lg">
+                            <h2 class="text-lg font-semibold text-white mb-4">Sentiment Breakdown</h2>
+                            <canvas id="sentimentBreakdownChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h2 class="text-lg font-semibold text-white mb-4">Top Issues</h2>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 hover:bg-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                    <div class="p-2 bg-gray-600 rounded-lg">
+                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5-10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-white">A recent news article about @BrandInc's workplace culture is ver...</p>
+                                        <p class="text-xs text-gray-500">Corporate &middot; 15 minutes ago</p>
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">420 <span class="text-gray-400 font-normal">engagements</span></p>
+                            </div>
+                             <div class="flex items-center justify-between p-3 hover:bg-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                   <div class="p-2 bg-gray-600 rounded-lg">
+                                        <svg class="w-6 h-6 text-red-500" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Reddit</title><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.34.34 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12.469c-1.03 0-1.865.835-1.865 1.865s.835 1.865 1.865 1.865 1.865-.835 1.865-1.865-.835-1.865-1.865-1.865zm5.5 0c-1.03 0-1.865.835-1.865 1.865s.835 1.865 1.865 1.865 1.865-.835 1.865-1.865-.835-1.865-1.865-1.865z"></path></svg>
+                                   </div>
+                                    <div>
+                                        <p class="text-white">Is anyone else having issues with @BrandInc's latest update? My...</p>
+                                        <p class="text-xs text-gray-500">Product &middot; 22 minutes ago</p>
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">398 <span class="text-gray-400 font-normal">engagements</span></p>
+                            </div>
+                             <div class="flex items-center justify-between p-3 hover:bg-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                   <div class="p-2 bg-gray-600 rounded-lg">
+                                        <svg class="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.999 4.032c-1.172 1.956-2.586 3.516-4.242 4.674-1.656 1.152-3.456 1.836-5.4 1.98-.3.024-.6.036-.9.036-.324 0-.636-.012-.948-.036-1.92-.144-3.684-.804-5.292-1.92-1.608-1.116-2.976-2.652-4.104-4.608l2.304-.96c.948 1.524 2.112 2.796 3.504 3.816s2.964 1.536 4.716 1.536c1.752 0 3.324-.504 4.716-1.512s2.556-2.28 3.504-3.78l2.304.984Z"></path></svg>
+                                   </div>
+                                    <div>
+                                        <p class="text-white">Wow, @BrandInc just increased their subscription prices by 30%...</p>
+                                        <p class="text-xs text-gray-500">Pricing &middot; 1 day ago</p>
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">120 <span class="text-gray-400 font-normal">engagements</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div id="no-reports-placeholder" class="text-center py-20 bg-gray-800 rounded-lg border border-gray-700">
+                    <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-semibold text-white">Connect an Account to Generate Reports</h3>
+                    <p class="mt-1 text-sm text-gray-400">Metrics and charts will be generated here once you connect an account in settings.</p>
+                </div>
+            </main>
+
+            <main id="competitors" class="page-content p-8 hidden">
+                <div id="competitors-data-wrapper" class="hidden">
+                    <header class="mb-8 flex justify-between items-center">
+                        <h1 class="text-3xl font-bold text-white">Competitors</h1>
+                        <button id="add-competitor-btn" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            <span>Add Competitor</span>
+                        </button>
+                    </header>
+
+                    <div>
+                        <div class="border-b border-gray-700">
+                            <nav id="competitor-tabs-nav" class="-mb-px flex space-x-8" aria-label="Tabs">
+                                <button class="competitor-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-indigo-400 border-indigo-500" data-target="competitor-brandb">
+                                    BrandB
+                                </button>
+                                <button class="competitor-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 border-transparent hover:text-gray-300 hover:border-gray-500" data-target="competitor-nextgen">
+                                    NextGen Inc.
+                                </button>
+                                <button class="competitor-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 border-transparent hover:text-gray-300 hover:border-gray-500" data-target="competitor-innovateco">
+                                    Innovate Co.
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+
+                    <div id="competitor-content-container" class="mt-8">
+                        <div id="competitor-brandb" class="competitor-content">
+                            <div class="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
+                                <h3 class="text-lg font-semibold text-white">AI Analysis for BrandB</h3>
+                                <p class="mt-2 text-sm text-gray-400">BrandB is generating significant buzz around their new 'QuantumLeap' feature, with positive sentiment focused on its innovative capabilities. However, a growing number of users are expressing frustration with the new, higher subscription cost, presenting a potential opportunity to attract price-sensitive customers.</p>
+                            </div>
+                            <div class="space-y-6">
+                                <div class="bg-gray-800 rounded-lg p-6">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/16a34a/ffffff?text=E" alt="Avatar">
+                                            <div><p class="font-semibold text-white">EarlyAdopter</p><p class="text-sm text-gray-400">@earlyadopter &middot; 2 hours ago</p></div>
+                                        </div>
+                                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.999 4.032c-1.172 1.956-2.586 3.516-4.242 4.674-1.656 1.152-3.456 1.836-5.4 1.98-.3.024-.6.036-.9.036-.324 0-.636-.012-.948-.036-1.92-.144-3.684-.804-5.292-1.92-1.608-1.116-2.976-2.652-4.104-4.608l2.304-.96c.948 1.524 2.112 2.796 3.504 3.816s2.964 1.536 4.716 1.536c1.752 0 3.324-.504 4.716-1.512s2.556-2.28 3.504-3.78l2.304.984Z"/></svg>
+                                    </div>
+                                    <p class="mt-4 text-gray-300">The new #QuantumLeap feature from @BrandB is insane! It's completely changed how I work. A bit pricey, but worth every penny for the productivity boost.</p>
+                                </div>
+                                <div class="bg-gray-800 rounded-lg p-6">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/dc2626/ffffff?text=C" alt="Avatar">
+                                            <div><p class="font-semibold text-white">CostConscious</p><p class="text-sm text-gray-400">@costconscious &middot; 5 hours ago</p></div>
+                                        </div>
+                                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.999 4.032c-1.172 1.956-2.586 3.516-4.242 4.674-1.656 1.152-3.456 1.836-5.4 1.98-.3.024-.6.036-.9.036-.324 0-.636-.012-.948-.036-1.92-.144-3.684-.804-5.292-1.92-1.608-1.116-2.976-2.652-4.104-4.608l2.304-.96c.948 1.524 2.112 2.796 3.504 3.816s2.964 1.536 4.716 1.536c1.752 0 3.324-.504 4.716-1.512s2.556-2.28 3.504-3.78l2.304.984Z"/></svg>
+                                    </div>
+                                    <p class="mt-4 text-gray-300">Did @BrandB really just lock their best new features behind a 40% price hike? Looking for alternatives now. Any suggestions for a tool like theirs but with saner pricing?</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="competitor-nextgen" class="competitor-content hidden">
+                            <div class="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
+                                <h3 class="text-lg font-semibold text-white">AI Analysis for NextGen Inc.</h3>
+                                <p class="mt-2 text-sm text-gray-400">NextGen Inc. is struggling with stability issues after their 'Velocity' update. While the promised features are compelling, widespread reports of bugs and crashes are damaging their reputation. This presents an opportunity to highlight our platform's reliability.</p>
+                            </div>
+                            <div class="space-y-6">
+                                <div class="bg-gray-800 rounded-lg p-6">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-center space-x-4"><img class="w-10 h-10 rounded-full" src="https://placehold.co/100x100/f97316/ffffff?text=F" alt="Avatar">
+                                            <div><p class="font-semibold text-white">FrustratedUser</p><p class="text-sm text-gray-400">@frustrateduser &middot; 1 day ago</p></div>
+                                        </div>
+                                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.999 4.032c-1.172 1.956-2.586 3.516-4.242 4.674-1.656 1.152-3.456 1.836-5.4 1.98-.3.024-.6.036-.9.036-.324 0-.636-.012-.948-.036-1.92-.144-3.684-.804-5.292-1.92-1.608-1.116-2.976-2.652-4.104-4.608l2.304-.96c.948 1.524 2.112 2.796 3.504 3.816s2.964 1.536 4.716 1.536c1.752 0 3.324-.504 4.716-1.512s2.556-2.28 3.504-3.78l2.304.984Z"/></svg>
+                                    </div>
+                                    <p class="mt-4 text-gray-300">Is @NextGenInc's app just completely broken for anyone else? Since the 'Velocity' update, I can't even save a project. So frustrating.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="competitor-innovateco" class="competitor-content hidden">
+                            <div class="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
+                                <h3 class="text-lg font-semibold text-white">AI Analysis for Innovate Co.</h3>
+                                <p class="mt-2 text-sm text-gray-400">Innovate Co. is receiving praise for its excellent customer support and community engagement. They are effectively building brand loyalty, even if their product features are not as advanced as others in the market. This highlights the importance of the customer experience.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div id="no-competitors-placeholder" class="text-center py-20 bg-gray-800 rounded-lg border border-gray-700">
+                    <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-semibold text-white">Connect an Account to Track Competitors</h3>
+                    <p class="mt-1 text-sm text-gray-400">Competitor tracking will be enabled here once you connect an account in settings.</p>
+                </div>
+            </main>
+
+            <main id="settings" class="page-content p-8 hidden">
+                <header class="mb-8">
+                    <h1 class="text-3xl font-bold text-white">Settings</h1>
+                </header>
+
+                <div class="max-w-2xl mx-auto space-y-8">
+                    <div class="bg-gray-800 p-8 rounded-lg">
+                        <h2 class="text-xl font-semibold text-white">Brand Voice</h2>
+                        <p class="text-gray-400 mt-1">Configure the tone and style for AI-generated responses.</p>
+                        
+                        <div class="mt-6 space-y-6">
+                            <div>
+                                <label for="brand-tone" class="block text-sm font-medium text-gray-300">Brand Tone</label>
+                                <select id="brand-tone" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <option>Empathetic</option>
+                                    <option>Formal</option>
+                                    <option>Casual</option>
+                                    <option>Direct</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="company-name" class="block text-sm font-medium text-gray-300">Company Name</label>
+                                <input type="text" id="company-name" value="BrandInc" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <button class="save-changes-btn px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-800 p-8 rounded-lg">
+                        <h2 class="text-xl font-semibold text-white">Notifications</h2>
+                        <p class="text-gray-400 mt-1">Manage how you receive alerts for new mentions.</p>
+
+                        <div class="mt-6 space-y-6">
+                            <div>
+                                <label for="slack-webhook" class="block text-sm font-medium text-gray-300">Slack Webhook URL</label>
+                                <input type="url" id="slack-webhook" placeholder="https://hooks.slack.com/services/..." class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                             <div>
+                                <label for="alert-priority" class="block text-sm font-medium text-gray-300">Real-time Alert Priority</label>
+                                <select id="alert-priority" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <option>High Priority Only</option>
+                                    <option>High & Medium Priority</option>
+                                    <option>All Mentions</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button class="save-changes-btn px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-800 p-8 rounded-lg">
+                        <h2 class="text-xl font-semibold text-white">Connected Accounts</h2>
+                        <p class="text-gray-400 mt-1">Connect your accounts to start tracking mentions across platforms.</p>
+
+                        <div class="mt-6 space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                    <svg class="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.999 4.032c-1.172 1.956-2.586 3.516-4.242 4.674-1.656 1.152-3.456 1.836-5.4 1.98-.3.024-.6.036-.9.036-.324 0-.636-.012-.948-.036-1.92-.144-3.684-.804-5.292-1.92-1.608-1.116-2.976-2.652-4.104-4.608l2.304-.96c.948 1.524 2.112 2.796 3.504 3.816s2.964 1.536 4.716 1.536c1.752 0 3.324-.504 4.716-1.512s2.556-2.28 3.504-3.78l2.304.984Z"></path></svg>
+                                    <span class="font-medium text-white">Twitter</span>
+                                </div>
+                                <button class="connect-btn px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">Connect</button>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                    <svg class="w-6 h-6 text-green-400" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Google</title><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.386-7.439-7.574s3.344-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.85l3.25-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"></path></svg>
+                                    <span class="font-medium text-white">Google Reviews</span>
+                                </div>
+                                <button class="connect-btn px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">Connect</button>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                     <svg class="w-6 h-6 text-red-500" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Reddit</title><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.34.34 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12.469c-1.03 0-1.865.835-1.865 1.865s.835 1.865 1.865 1.865 1.865-.835 1.865-1.865-.835-1.865-1.865-1.865zm5.5 0c-1.03 0-1.865.835-1.865 1.865s.835 1.865 1.865 1.865 1.865-.835 1.865-1.865-.835-1.865-1.865-1.865z"></path></svg>
+                                    <span class="font-medium text-white">Reddit</span>
+                                </div>
+                                <button class="connect-btn px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">Connect</button>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                     <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.323-1.325z"></path></svg>
+                                    <span class="font-medium text-white">Facebook</span>
+                                </div>
+                                <button class="connect-btn px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">Connect</button>
+                            </div>
+                             <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                    <svg class="w-6 h-6 text-pink-500" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919 1.266-.057 1.644-.069 4.85-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.059-1.689-.073-4.948-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44 1.441-.645 1.441-1.44-.645-1.44-1.441-1.44z"></path></svg>
+                                    <span class="font-medium text-white">Instagram</span>
+                                </div>
+                                <button class="connect-btn px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">Connect</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+        </div>
+    </div>
+    
+    <div id="add-competitor-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white">Add New Competitor</h2>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <form id="add-competitor-form">
+                <div>
+                    <label for="competitor-name-input" class="block text-sm font-medium text-gray-300 mb-2">Competitor Name</label>
+                    <input type="text" id="competitor-name-input" required placeholder="Enter company name" class="bg-gray-700 border border-gray-600 rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="mt-8 flex justify-end space-x-4">
+                    <button type="button" id="cancel-add-competitor-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-500">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500">Save Competitor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="save-popup" class="hidden fixed top-5 right-5 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg" role="alert">
+      <strong class="font-bold">✓ Success!</strong>
+      <span class="block sm:inline">Your changes have been saved.</span>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Supabase Initialization ---
+            const { createClient } = supabase;
+            const supabaseUrl = 'https://xhocnynippuwoptxftei.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhob2NueW5pcHB1d29wdHhmdGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NTcxMTksImV4cCI6MjA3NTEzMzExOX0.Nmo5FPHzN6aWEZ6JDSmuLJNo1uGIYE9vAgJ0yDfGBGM';
+            const _supabase = createClient(supabaseUrl, supabaseKey);
+
+            // --- Elements ---
+            const authContainer = document.getElementById('auth-container');
+            const dashboardContainer = document.getElementById('dashboard-container');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const showRegisterLink = document.getElementById('show-register');
+            const showLoginLink = document.getElementById('show-login');
+            const loginEmailInput = document.getElementById('login-email');
+            const loginPasswordInput = document.getElementById('login-password');
+            const loginError = document.getElementById('login-error');
+            const loginErrorMessage = document.getElementById('login-error-message');
+            const registerMessage = document.getElementById('register-message');
+            const logoutButton = document.getElementById('logout-button');
+            const analysisToggles = document.querySelectorAll('.analysis-toggle');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pageContents = document.querySelectorAll('.page-content');
+            
+            // --- Interactive Elements ---
+            const postAnalysisButtons = document.querySelectorAll('.post-analysis-btn');
+            const aiSuggestButtons = document.querySelectorAll('.ai-suggest-btn');
+            const connectButtons = document.querySelectorAll('.connect-btn');
+            const connectedCountSpan = document.getElementById('connected-count');
+            const totalAccountsSpan = document.getElementById('total-accounts');
+            const exportPdfButton = document.getElementById('export-pdf-btn');
+            const saveChangesButtons = document.querySelectorAll('.save-changes-btn');
+            const savePopup = document.getElementById('save-popup');
+
+            // --- Competitor Page Elements ---
+            const competitorTabsNav = document.getElementById('competitor-tabs-nav');
+            const competitorContentContainer = document.getElementById('competitor-content-container');
+            const addCompetitorBtn = document.getElementById('add-competitor-btn');
+            const addCompetitorModal = document.getElementById('add-competitor-modal');
+            const addCompetitorForm = document.getElementById('add-competitor-form');
+            const cancelAddCompetitorBtn = document.getElementById('cancel-add-competitor-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const competitorNameInput = document.getElementById('competitor-name-input');
+
+
+            // --- User Info Display ---
+            const userNameDisplay = document.getElementById('user-name-display');
+            const userEmailDisplay = document.getElementById('user-email-display');
+            
+            let connectedCount = 0;
+            let chartsInitialized = false;
+            let trendChart, breakdownChart;
+
+            // --- Auth Logic ---
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = loginEmailInput.value;
+                const password = loginPasswordInput.value;
+
+                const { data, error } = await _supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) {
+                    loginErrorMessage.textContent = error.message;
+                    loginError.classList.remove('hidden');
+                } else if (data.user) {
+                    authContainer.classList.add('hidden');
+                    dashboardContainer.classList.remove('hidden');
+                    loginError.classList.add('hidden');
+                    updateUserInfo(data.user);
+                }
+            });
+
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value;
+                const brandName = document.getElementById('register-brand-name').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm-password').value;
+
+                registerMessage.classList.add('hidden');
+
+                if (password !== confirmPassword) {
+                    showRegisterMessage("Passwords do not match.", true);
+                    return;
+                }
+
+                const { data, error } = await _supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: name,
+                            brand_name: brandName,
+                        }
+                    }
+                });
+                
+                if (error) {
+                    showRegisterMessage(error.message, true);
+                } else {
+                    showRegisterMessage("Registration successful! Please check your email to confirm your account.", false);
+                    registerForm.reset();
+                }
+            });
+
+            function showRegisterMessage(message, isError = false) {
+                registerMessage.querySelector('span').textContent = message;
+                registerMessage.classList.remove('hidden');
+                if (isError) {
+                    registerMessage.classList.add('bg-red-900', 'border', 'border-red-400', 'text-red-100');
+                    registerMessage.classList.remove('bg-green-900', 'border', 'border-green-400', 'text-green-100');
+                } else {
+                    registerMessage.classList.remove('bg-red-900', 'border', 'border-red-400', 'text-red-100');
+                    registerMessage.classList.add('bg-green-900', 'border', 'border-green-400', 'text-green-100');
+                }
+            }
+            
+            function updateUserInfo(user) {
+                if (user) {
+                    userEmailDisplay.textContent = user.email;
+                    // Use user_metadata for full name if available, otherwise fallback to a default
+                    userNameDisplay.textContent = user.user_metadata?.full_name || 'User'; 
+                }
+            }
+
+            logoutButton.addEventListener('click', async () => {
+                await _supabase.auth.signOut();
+                window.location.reload();
+            });
+
+            showRegisterLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+            });
+
+            showLoginLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            });
+
+            // --- Dashboard Logic ---
+            analysisToggles.forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    const icon = button.querySelector('svg');
+                    content.classList.toggle('open');
+                    icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                });
+            });
+
+            // --- AI Analysis Interactivity ---
+            aiSuggestButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const analysisContent = e.target.closest('.analysis-content');
+                    if (!analysisContent) return;
+                    
+                    const recommendedActionP = analysisContent.querySelector('p:nth-of-type(2)');
+                    const recommendedActionText = recommendedActionP ? recommendedActionP.innerText.replace('Recommended Action:', '').trim() : '';
+
+                    const composeBox = analysisContent.querySelector('.compose-box');
+                    if (composeBox) {
+                        composeBox.value = recommendedActionText;
+                    }
+                });
+            });
+
+            postAnalysisButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const originalText = button.textContent;
+                    
+                    button.textContent = 'Sent successfully!';
+                    button.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                    button.classList.add('bg-green-600', 'cursor-not-allowed');
+                    button.disabled = true;
+
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                        button.classList.remove('bg-green-600', 'cursor-not-allowed');
+                        button.disabled = false;
+                    }, 2500);
+                });
+            });
+
+            // --- Settings Page Interactivity ---
+            if (totalAccountsSpan) {
+                 totalAccountsSpan.textContent = connectButtons.length;
+            }
+            connectButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (button.disabled) return;
+
+                    button.textContent = 'Connected';
+                    button.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                    button.classList.add('bg-green-600', 'cursor-not-allowed');
+                    button.disabled = true;
+
+                    connectedCount++;
+                    if (connectedCountSpan) {
+                        connectedCountSpan.textContent = connectedCount;
+                    }
+
+                    // --- GLOBAL DATA POPULATION ---
+                    document.getElementById('mentions-container').classList.remove('hidden');
+                    document.getElementById('no-mentions-placeholder').classList.add('hidden');
+                    document.getElementById('report-content').classList.remove('hidden');
+                    document.getElementById('no-reports-placeholder').classList.add('hidden');
+                    document.getElementById('competitors-data-wrapper').classList.remove('hidden');
+                    document.getElementById('no-competitors-placeholder').classList.add('hidden');
+
+                    if (!chartsInitialized) {
+                        initCharts();
+                        chartsInitialized = true;
+                    }
+                });
+            });
+
+            saveChangesButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (savePopup) {
+                        savePopup.classList.remove('hidden');
+                        setTimeout(() => {
+                            savePopup.classList.add('hidden');
+                        }, 2500); // Hide after 2.5 seconds
+                    }
+                });
+            });
+
+
+             // --- PDF Export Logic ---
+            if (exportPdfButton) {
+                exportPdfButton.addEventListener('click', () => {
+                    const { jsPDF } = window.jspdf;
+                    const reportContent = document.getElementById('report-content');
+                    if (!reportContent || reportContent.classList.contains('hidden')) {
+                        alert("Please connect an account to generate a report first.");
+                        return;
+                    }
+
+                    const originalBtnHTML = exportPdfButton.innerHTML;
+                    exportPdfButton.disabled = true;
+                    exportPdfButton.innerHTML = `
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Generating...</span>`;
+
+                    html2canvas(reportContent, {
+                        backgroundColor: '#111827',
+                        scale: 1.5
+                    }).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                        const pdfWidth = pdf.internal.pageSize.getWidth();
+                        const pdfHeight = pdf.internal.pageSize.getHeight();
+                        const canvasWidth = canvas.width;
+                        const canvasHeight = canvas.height;
+                        const canvasRatio = canvasWidth / canvasHeight;
+                        let finalWidth = pdfWidth - 20;
+                        let finalHeight = finalWidth / canvasRatio;
+
+                        if (finalHeight > pdfHeight - 20) {
+                            finalHeight = pdfHeight - 20;
+                            finalWidth = finalHeight * canvasRatio;
+                        }
+                        const xPos = (pdfWidth - finalWidth) / 2;
+                        const yPos = 10;
+                        pdf.addImage(imgData, 'PNG', xPos, yPos, finalWidth, finalHeight);
+                        pdf.save('Alertify-Report_' + new Date().toISOString().slice(0, 10) + '.pdf');
+                        exportPdfButton.disabled = false;
+                        exportPdfButton.innerHTML = originalBtnHTML;
+                    }).catch(err => {
+                        console.error("PDF generation failed", err);
+                        exportPdfButton.disabled = false;
+                        exportPdfButton.innerHTML = originalBtnHTML;
+                        alert("Could not generate PDF. See console for details.");
+                    });
+                });
+            }
+
+            // --- Competitors Page Logic ---
+            if (addCompetitorBtn) {
+                addCompetitorBtn.addEventListener('click', () => {
+                    addCompetitorModal.classList.remove('hidden');
+                });
+            }
+
+            function closeModal() {
+                addCompetitorForm.reset();
+                addCompetitorModal.classList.add('hidden');
+            }
+
+            if (cancelAddCompetitorBtn) cancelAddCompetitorBtn.addEventListener('click', closeModal);
+            if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+
+            if (addCompetitorForm) {
+                addCompetitorForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const competitorName = competitorNameInput.value.trim();
+                    if (!competitorName) return;
+
+                    const competitorId = `competitor-${competitorName.toLowerCase().replace(/\s+/g, '-')}`;
+
+                    const newTab = document.createElement('button');
+                    newTab.className = "competitor-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 border-transparent hover:text-gray-300 hover:border-gray-500";
+                    newTab.dataset.target = competitorId;
+                    newTab.textContent = competitorName;
+                    competitorTabsNav.appendChild(newTab);
+
+                    const newContent = document.createElement('div');
+                    newContent.id = competitorId;
+                    newContent.className = "competitor-content hidden";
+                    newContent.innerHTML = `
+                        <div class="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
+                            <h3 class="text-lg font-semibold text-white">AI Analysis for ${competitorName}</h3>
+                            <p class="mt-2 text-sm text-gray-400">Data is being gathered for ${competitorName}. Check back soon for automated analysis and top mentions.</p>
+                        </div>
+                        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
+                            <div class="bg-gray-700 p-6 rounded-lg h-28"><div class="h-4 bg-gray-600 rounded w-1/2"></div><div class="h-8 bg-gray-600 rounded w-1/3 mt-2"></div></div>
+                            <div class="bg-gray-700 p-6 rounded-lg h-28"><div class="h-4 bg-gray-600 rounded w-1/2"></div><div class="h-8 bg-gray-600 rounded w-1/3 mt-2"></div></div>
+                            <div class="bg-gray-700 p-6 rounded-lg h-28"><div class="h-4 bg-gray-600 rounded w-1/2"></div><div class="h-8 bg-gray-600 rounded w-1/3 mt-2"></div></div>
+                        </div>
+                        <div class="mt-6 bg-gray-700 p-6 rounded-lg h-64 animate-pulse"></div>
+                    `;
+                    competitorContentContainer.appendChild(newContent);
+
+                    closeModal();
+                    newTab.click();
+                });
+            }
+            
+            if (competitorTabsNav) {
+                competitorTabsNav.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('competitor-tab')) {
+                        const clickedTab = e.target;
+                        const targetId = clickedTab.dataset.target;
+
+                        competitorTabsNav.querySelectorAll('.competitor-tab').forEach(t => {
+                            t.classList.remove('text-indigo-400', 'border-indigo-500');
+                            t.classList.add('text-gray-500', 'border-transparent', 'hover:text-gray-300', 'hover:border-gray-500');
+                        });
+                        clickedTab.classList.add('text-indigo-400', 'border-indigo-500');
+                        clickedTab.classList.remove('text-gray-500', 'border-transparent');
+
+                        competitorContentContainer.querySelectorAll('.competitor-content').forEach(content => {
+                            if (content.id === targetId) {
+                                content.classList.remove('hidden');
+                            } else {
+                                content.classList.add('hidden');
+                            }
+                        });
+                    }
+                });
+            }
+
+
+            // --- Navigation Logic ---
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href').substring(1);
+
+                    navLinks.forEach(navLink => {
+                        navLink.classList.remove('bg-gray-700', 'text-white');
+                        navLink.classList.add('text-gray-400');
+                    });
+                    link.classList.add('bg-gray-700', 'text-white');
+                    link.classList.remove('text-gray-400');
+                    
+                    pageContents.forEach(page => {
+                        page.classList.add('hidden');
+                    });
+                    document.getElementById(targetId).classList.remove('hidden');
+
+                    if (targetId === 'reports' && !chartsInitialized && !document.getElementById('report-content').classList.contains('hidden')) {
+                        initCharts();
+                        chartsInitialized = true;
+                    }
+                });
+            });
+
+            function initCharts() {
+                if (document.getElementById('sentimentTrendChart') === null) return;
+                if (trendChart) trendChart.destroy();
+                if (breakdownChart) breakdownChart.destroy();
+
+                Chart.defaults.color = '#9ca3af';
+                Chart.defaults.borderColor = '#4b5563';
+
+                const trendCtx = document.getElementById('sentimentTrendChart').getContext('2d');
+                trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Sep 28', 'Sep 29', 'Sep 30', 'Oct 1', 'Oct 2', 'Oct 3', 'Today'],
+                        datasets: [
+                            {
+                                label: 'Positive',
+                                data: [12, 19, 13, 15, 22, 23, 28],
+                                borderColor: '#818cf8',
+                                backgroundColor: 'rgba(129, 140, 248, 0.2)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Negative',
+                                data: [8, 10, 11, 9, 13, 10, 14],
+                                borderColor: '#f87171',
+                                backgroundColor: 'rgba(248, 113, 113, 0.2)',
+                                fill: true,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom', align: 'start' } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                const breakdownCtx = document.getElementById('sentimentBreakdownChart').getContext('2d');
+                breakdownChart = new Chart(breakdownCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Positive', 'Negative', 'Neutral'],
+                        datasets: [{
+                            data: [30, 40, 30],
+                            backgroundColor: ['#4ade80', '#f87171', '#9ca3af'],
+                            borderColor: '#1f2937',
+                            borderWidth: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        cutout: '75%',
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>

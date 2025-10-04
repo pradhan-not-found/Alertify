@@ -1,0 +1,20 @@
+{
+  "name": "alertify-ai-backend",
+  "version": "1.0.0",
+  "description": "AI-powered social media integration API for the Alertify project.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "twitter-api-v2": "^1.12.9",
+    "google-auth-library": "^8.7.0",
+    "@google-cloud/language": "^5.1.2"
+  }
+}
+

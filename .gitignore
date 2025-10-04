@@ -1,0 +1,9 @@
+# Ignore the file containing secret API keys
+.env
+
+# Ignore the large folder of installed packages
+# Anyone who clones the project can recreate this with `npm install`
+/backend/node_modules
+
+# Ignore editor-specific settings
+.vscode/
