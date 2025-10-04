@@ -246,4 +246,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 Souradeep Pradhan - https://www.linkedin.com/posts/souradeep-pradhan_aiagent-hackathon-brandmanagement-activity-7380240201434005504-QugF?utm_source=share&utm_medium=member_desktop&rcm=ACoAAFLSNZsB-zB5jTFxdjgEjPureWMt52kueHM
 
-Project Link: [https://github.com/pradhan-not-found/Alertify](https://github.com/pradhan-not-found
+Project Link: https://pradhan-not-found.github.io/Alertify/
+
